@@ -1,0 +1,13 @@
+{
+  "name": "agent-marketplace",
+  "owner": {
+    "name": "Matt Styles"
+  },
+  "plugins": [
+    {
+      "name": "tsc-react-dev-plugin",
+      "source": "./plugins/tsc-react-dev-plugin",
+      "description": "Adds agents, commands and skills to help with React development using TypeScript."
+    }
+  ]
+}
