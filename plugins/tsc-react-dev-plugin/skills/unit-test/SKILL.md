@@ -22,7 +22,7 @@ Parse these from the user's request:
 1. Read the target source file(s) thoroughly
 2. Read the project's CLAUDE.md for testing conventions
 3. Find and read 2-3 existing test files near the target to learn local patterns:
-   - `setupTest()` / `setUpTest()` helper pattern
+   - `setUpTest()` / `setupTest()` helper pattern
    - Element selector objects (`const elements = { get foo() { ... } }`)
    - Mock store setup
    - Import conventions
@@ -57,7 +57,7 @@ Present a test plan to the user before writing. Include:
 - [edge case]
 ```
 
-Wait for user approval before proceeding.
+Present the plan to the user and **wait for approval** before proceeding. Incorporate any feedback they give.
 
 ### Phase 3: Write → Review → Iterate
 
@@ -80,7 +80,7 @@ Launch the `coder` sub-agent via the Task tool with `subagent_type: "coder"`. In
 - Test user-visible behavior, not implementation
 - Use `userEvent` (not `fireEvent`) for interactions
 - One assertion concept per test (multiple `expect` OK if testing one behavior)
-- Use `setupTest()` pattern for shared setup
+- Use `setUpTest()` pattern for shared setup
 - Use element selector objects for repeated queries
 - Flat test structure — avoid nested `describe` blocks. One `describe` per suite max.
 - Follow existing project conventions discovered in Phase 1
@@ -94,8 +94,17 @@ Launch the `coder` sub-agent via the Task tool with `subagent_type: "coder"`. In
 
 // Types/interfaces if needed
 
+// Tests
+describe("ComponentName", () => {
+  test("must [expected behavior] when [condition]", async () => {
+    // Arrange
+    // Act
+    // Assert
+  });
+});
+
 // Setup helper
-function setupTest(overrides?: Partial<Props>) {
+function setUpTest(overrides?: Partial<Props>) {
   const defaults = {
     /* sensible defaults */
   };
@@ -112,15 +121,6 @@ const elements = {
     return screen.getByRole("button", { name: "Submit" });
   },
 };
-
-// Tests
-describe("ComponentName", () => {
-  test("must [expected behavior] when [condition]", async () => {
-    // Arrange
-    // Act
-    // Assert
-  });
-});
 ```
 
 #### Step 2: Review (code-reviewer agent)
@@ -132,7 +132,7 @@ After the coder finishes, launch the `code-reviewer` sub-agent via the Task tool
 - Ask it to review for:
   - Correctness: do tests actually verify the described behavior?
   - Testing Library best practices (role queries, userEvent, no implementation testing)
-  - Project convention adherence (setupTest pattern, element selectors, naming)
+  - Project convention adherence (setUpTest pattern, element selectors, naming)
   - Missing edge cases or branches (especially if `full` coverage mode)
   - Anti-patterns: snapshot tests, manual DOM traversal, excessive mocking, testing framework internals
 

@@ -24,6 +24,7 @@ You are an elite TypeScript developer with over 20 years of experience building 
 - Write meaningful comments that explain **why**, not **what** (the code shows what).
 - Add JSDoc comments to all public APIs, interfaces, types, and exported functions with `@param`, `@returns`, and `@throws` tags where applicable.
 - Use inline comments sparingly and only when the logic is non-obvious.
+- JSDoc comments on interface fields must be multi-line (`/** ... */` on separate lines) with a blank line between each field
 - When creating new files, include the file header comment:
   ```
   //
@@ -35,11 +36,14 @@ You are an elite TypeScript developer with over 20 years of experience building 
 
 ### TypeScript Conventions
 - Always declare explicit accessibility modifiers (`public`, `private`, `protected`) on class members.
+- Member ordering: public fields → private fields → constructor → public methods → protected → private
 - Use `readonly` for properties that should not be reassigned after construction.
 - Prefer `interface` for object shapes that may be extended; use `type` for unions, intersections, and computed types.
 - Use `const` assertions and `as const` for literal types where appropriate.
 - Never use `@ts-ignore` — use `@ts-expect-error` with a comment explaining why, only as a last resort.
 - Prefer `unknown` over `any` when the type is truly not known, and narrow it with type guards.
+- Always use curly braces for if/for/while statements, even single-line bodies
+- Exported functions must have explicit return types (e.g., `: JSX.Element`)
 
 ### Function Design
 - Functions should do one thing well. If a function exceeds ~30 lines, consider decomposing it.
@@ -55,14 +59,24 @@ You are an elite TypeScript developer with over 20 years of experience building 
 - Provide meaningful error messages that aid debugging.
 
 ### React & MobX Patterns
+- Sort props alphabetically in interfaces/types and JSX
+- JSX props: alphabetical, then `aria-*`, then `data-*` (each group sorted)
+- Sort hook dependency arrays alphabetically
+- Destructure React types on import (not `React.ChangeEvent`)
 - Wrap React components with `observer()` from `mobx-react-lite` when they read observable state.
 - Use `makeObservable` (not `makeAutoObservable`) for classes extending a base class.
 - Stores should be instantiated per-page, not cached globally.
 - Use the module pattern: `ComponentName/` folder with `.tsx`, `.module.scss`, `.test.tsx`.
 - Clean up disposers and reactions in `useEffect` cleanup functions.
 
+### CSS Class Names
+
+- Use `classnames` package (`import classNames from "classnames"`) for conditional class composition — never ternaries
+- Static classes as a single string, conditional classes as an object: `classNames("d-flex flex-grow-1", { "d-none": isHidden })`
+- Don't use classNames when mixing classes without conditionals: `d-flex flext-grow-1 ${styles.fromModule}`
+
 ### Import Ordering
-- External imports first, then internal imports (alphabetical).
+- Import ordering: external → `../` internal → `./` local (alphabetical within each group); blank line between each group; type imports before value imports from same module
 - Type imports before value imports from the same module.
 
 ## Workflow

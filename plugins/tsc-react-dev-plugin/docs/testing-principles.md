@@ -134,6 +134,6 @@ test("must render empty state when no items exist", ...);
 2. **Testing implementation** — `wrapper.instance()`, internal state checks
 3. **Manual DOM traversal** — `container.querySelector(".my-class")`
 4. **Excessive mocking** — mock boundaries (APIs, stores), not internals
-5. **Copy-paste tests** — extract `setupTest()` helpers instead
+5. **Copy-paste tests** — extract `setUpTest()` helpers instead
 6. **Testing library code** — don't test MobX reactivity or React rendering itself
 7. **Asserting on mock call counts** — assert on visible outcomes instead when possible

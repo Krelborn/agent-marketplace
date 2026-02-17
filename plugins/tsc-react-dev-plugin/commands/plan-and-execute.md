@@ -26,17 +26,25 @@ Return a concise summary of findings. Do NOT load full file contents into your o
 
 ## Phase 2: Plan
 
-Based on the investigation, produce a structured plan:
+Based on the investigation, produce a structured plan with these sections:
 
 1. **Summary**: One paragraph describing the change and its blast radius
 2. **Layers**: Break the work into ordered layers where each layer is a coherent unit of change:
    - Each layer should have a clear scope (e.g., "Update the schema", "Fix downstream types", "Update tests")
    - Note dependencies between layers (which must complete before others can start)
    - Identify any layers that can run in parallel
-3. **Risks**: Anything that could go wrong or needs the user's input
+3. **Risks**: Anything that could go wrong
 4. **Verification**: How to confirm the change is correct (type checker, test suite, manual checks)
 
-Present the plan to the user and **wait for approval** before proceeding. Incorporate any feedback they give.
+### Resolve ambiguities first
+
+If the investigation surfaced any ambiguities, unknowns, or decisions that require user input, use `AskUserQuestion` to resolve **every one of them** before presenting the plan. Do not list unresolved questions in the plan — resolve them now.
+
+### Present the plan and get approval
+
+Output the complete plan **directly in your response** as formatted text. Never write the plan to a file. Then use `AskUserQuestion` to ask the user to approve the plan, request changes, or reject it.
+
+**Do NOT proceed to Phase 3 until the user has explicitly approved the plan.**
 
 ## Testing Principles
 
@@ -82,7 +90,7 @@ Collect findings. If issues are raised, dispatch a Coder subagent to fix them, t
 
 ## Phase 5: Verify
 
-Run the verification steps from the plan (type checker, test suite, linter). Report the results to the user.
+Run the verification steps from the plan (type checker, test suite, linter). If 100% code coverage is required check the coverage. Report the results to the user.
 
 ## Rules
 
@@ -92,3 +100,6 @@ Run the verification steps from the plan (type checker, test suite, linter). Rep
 - **Prefer small briefs** — focused subagent tasks over large monolithic ones
 - **User checkpoints** — present the plan before executing; surface persistent issues rather than looping forever
 - **Handle failures** — if a subagent fails or gets stuck after 3 attempts, report to the user and ask how to proceed
+- **Plan in chat, not in files** — always output the plan directly in your response text; never write it to a file
+- **Resolve before executing** — use AskUserQuestion to resolve every ambiguity before starting Phase 3; never proceed with unresolved questions
+- **Explicit approval required** — do not start execution until the user has explicitly approved the plan via AskUserQuestion
