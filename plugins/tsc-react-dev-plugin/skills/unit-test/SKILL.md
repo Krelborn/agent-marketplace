@@ -85,6 +85,15 @@ Launch the `coder` sub-agent via the Task tool with `subagent_type: "coder"`. In
 - Flat test structure — avoid nested `describe` blocks. One `describe` per suite max.
 - Follow existing project conventions discovered in Phase 1
 
+**setUpTest variation selection** — choose based on test type:
+
+- **Store/utility tests** → return store + deps, no render
+- **Component tests** → return async `render()`, tests call it
+- **Complex domains** → hierarchical: `setUpTestWith[Feature]` layering
+- **Pre-loaded state** → pair sync `setUpTest` + async `setUpLoadedTest`
+
+See `../../docs/testing-principles.md` § setUpTest Pattern for full examples of each variation.
+
 **File structure template to include in coder prompt:**
 
 ```typescript
@@ -103,16 +112,18 @@ describe("ComponentName", () => {
   });
 });
 
-// Setup helper
-function setUpTest(overrides?: Partial<Props>) {
-  const defaults = {
-    /* sensible defaults */
+// Setup helper — deferred render variation (most common for components)
+// See ../../docs/testing-principles.md for store-only, immediate-render, and hierarchical variations
+function setUpTest({ /* option = default */ } = {}) {
+  // Create mocks, stores, test data
+  const store = new MockStore();
+
+  const render = async () => {
+    renderTL(/* <Provider><Component /></Provider> */);
+    await screen.findByRole("region", { name: "..." });
   };
-  const props = { ...defaults, ...overrides };
-  // render or instantiate
-  return {
-    /* useful references */
-  };
+
+  return { store, render };
 }
 
 // Element selectors (for component tests)

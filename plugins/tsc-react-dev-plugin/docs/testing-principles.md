@@ -97,6 +97,89 @@ describe("LoginForm", () => {
 });
 ```
 
+## setUpTest Pattern
+
+A test setup helper that prepares mocks, stores, and a render function. **It does NOT call render itself.** Tests control rendering explicitly.
+
+```typescript
+function setUpTest(options = {}) {
+  // 1. Create mocks, stores, test data
+  // 2. Configure mock behavior
+  // 3. Optionally create a render() function
+  return { store, render, ...handlers };
+}
+```
+
+### Store Tests
+
+No rendering — return store + dependencies.
+
+```typescript
+function setUpTest() {
+  const store = new MockStore();
+  MockAPI.getItems.mockResolvedValue(sampleItems);
+  return { store };
+}
+
+test("must create item", async () => {
+  const { store } = setUpTest();
+  await store.create({ name: "test" });
+  expect(MockAPI.create).toHaveBeenCalledTimes(1);
+});
+```
+
+### Component Tests — Deferred Render (most common)
+
+Returns an async `render()` function. Tests call it when ready.
+
+```typescript
+function setUpTest({ item = null } = {}) {
+  const store = new MockStore();
+  store.item = item;
+
+  const render = async () => {
+    renderTL(
+      <StoreContext.Provider value={store}>
+        <MyComponent store={store} />
+      </StoreContext.Provider>
+    );
+    await screen.findByRole("region", { name: "Editor" });
+  };
+
+  return { store, render };
+}
+
+test("must render editor", async () => {
+  const { render } = setUpTest();
+  await render();
+  expect(screen.getByRole("region", { name: "Editor" })).toBeInTheDocument();
+});
+```
+
+Note: `renderTL` is Testing Library's `render`, renamed to avoid collision with the local `render` function.
+
+### Hierarchical Helpers
+
+For complex domains, layer complexity progressively. Each helper builds on the previous:
+
+```typescript
+function setUpTest() { ... }
+function setUpTestWithItem() { return { ...setUpTest(), item, store }; }
+function setUpTestWithEditor() { return { ...setUpTestWithItem(), editor }; }
+```
+
+Tests pick the level of setup they need.
+
+### Key Conventions
+
+- **Naming**: `setUpTest`, `setUpTestWith[Feature]`, `setUpLoadedTest`
+- **Parameters**: single options object with defaults: `{ item = null, isReadOnly = false } = {}`
+- **Return**: always a named object — `return { store, render }`
+- **Render control**: tests call `render()` — setup never renders
+- **Async pairing**: for pre-loaded state, pair sync `setUpTest` with async `setUpLoadedTest` that awaits loading before returning
+- **Async waits**: return `waitFor*` helpers using MobX `when()` or Testing Library `waitFor()`
+- **Mock reset**: `vi.resetAllMocks()` at start when needed
+
 ## Naming Convention
 
 Use `must [behavior] when [condition]` pattern:
