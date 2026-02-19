@@ -1,6 +1,7 @@
 ---
 name: create-vite-react-project
 description: Scaffold a production-ready Vite + React + TypeScript project from scratch with Prettier, Vitest, React Testing Library, and VS Code settings pre-configured. Use this skill whenever the user wants to create a new React project, start a new Vite project, scaffold a TypeScript React app, set up a React project with testing, or mentions "new project", "vite project", "react project", "scaffold", or "bootstrap" in the context of creating a fresh web application. Also trigger when the user asks for a project template or starter with React and TypeScript.
+disable-model-invocation: true
 ---
 
 # Create Vite React TypeScript Project
