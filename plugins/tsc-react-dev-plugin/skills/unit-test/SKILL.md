@@ -1,100 +1,45 @@
 ---
 name: unit-test
-description: "Write unit tests for React components and TypeScript code using Vitest, @testing-library/react, and @testing-library/user-event. Use when the user asks to: write tests, add test coverage, create a test suite, test a component, test a store, test a utility, or achieve coverage targets. Supports specifying test suite names, 100% coverage by default with opt-out, and follows Kent C. Dodds testing principles. Triggers on phrases like 'write tests for', 'add tests', 'test coverage', 'unit test', '/unit-test'."
+description: "Guidance for writing unit tests in TypeScript/React codebases using Vitest, @testing-library/react, and @testing-library/user-event. Reference this skill when writing tests, adding test coverage, creating test suites, or reviewing test code. Covers scenario identification, setUpTest pattern selection, file structure, and practical checklists. Triggers on phrases like 'write tests for', 'add tests', 'test coverage', 'unit test', '/unit-test'."
 ---
 
-# Unit Test
+# Unit Test Knowledge
 
-Write unit tests following Kent C. Dodds testing principles with Vitest and Testing Library.
+Practical guidance for writing unit tests. For the theoretical foundation and full code examples, see `../../docs/testing-principles.md`.
 
-## Arguments
+## Scenario Identification
 
-Parse these from the user's request:
+| Scenario | Signals | setUpTest variation | Key tools |
+|---|---|---|---|
+| **React component** | `.tsx` file, JSX, renders UI | Deferred render | `renderWithRootStore()`, `userEvent`, role queries |
+| **MobX store** | `makeObservable`, `@observable`, `@action` | Store-only | `MockRootStore`, `when()` from MobX |
+| **Utility function** | Pure function, no React/MobX imports | Store-only (or none) | Direct calls, no rendering |
+| **API layer** | API calls, signal handling, fetch/axios | Store-only | `MockSignals` pattern, mock API responses |
 
-- **target**: File(s) or component(s) to test (required)
-- **suite**: Test suite name to create or add tests to (optional - inferred from target if omitted)
-- **coverage**: `full` (default) or `quick`. Full = target 100% coverage. Quick = cover critical paths only.
+## setUpTest Decision Guide
 
-## Workflow
+Choose the variation that matches your test's needs:
 
-### Phase 1: Discover
+**Store-only** — Use when there's no UI to render. Return store + dependencies directly.
+- Store tests, utility tests, API layer tests
+- No `render()` function returned
 
-1. Read the target source file(s) thoroughly
-2. Read the project's CLAUDE.md for testing conventions
-3. Find and read 2-3 existing test files near the target to learn local patterns:
-   - `setUpTest()` / `setupTest()` helper pattern
-   - Element selector objects (`const elements = { get foo() { ... } }`)
-   - Mock store setup
-   - Import conventions
-4. Read test utilities: check `src/test-utils/` for available helpers
-5. Identify the testing scenario:
-   - **React component** → use `renderWithRootStore()`, `userEvent`, role queries
-   - **MobX store** → use `MockRootStore`, `when()` from MobX for async
-   - **Utility function** → direct unit tests, no rendering needed
-   - **API layer** → use `MockSignals` pattern
+**Deferred render** — Most common for components. Return an async `render()` that tests call explicitly.
+- Component tests where tests need to configure state before rendering
+- Tests call `await render()` when ready
 
-### Phase 2: Plan
+**Hierarchical** (`setUpTestWith[Feature]`) — Use when a domain has multiple layers of complexity.
+- Complex domains with shared base setup and feature-specific extensions
+- Each helper builds on the previous: `setUpTest` → `setUpTestWithItem` → `setUpTestWithEditor`
+- Tests pick the level they need
 
-Present a test plan to the user before writing. Include:
+**Pre-loaded state** — Pair sync `setUpTest` + async `setUpLoadedTest` when tests need data already loaded.
+- Scenarios where some tests need pre-loading and others test the loading itself
+- `setUpLoadedTest` awaits async operations before returning
 
-```
-## Test Plan: [target]
+See `../../docs/testing-principles.md` § setUpTest Pattern for full code examples of each variation.
 
-**Suite**: `[suite name]` ([create new | add to existing])
-**Coverage mode**: [full | quick]
-**Coverage command**: `yarn test:coverage [test-file] --coverage.include='[source-file]'`
-**Type**: [component | store | utility | API]
-
-### Tests to write:
-1. [test description] - tests [what behavior]
-2. [test description] - tests [what behavior]
-...
-
-### Mocks needed:
-- [mock description]
-
-### Edge cases:
-- [edge case]
-```
-
-Present the plan to the user and **wait for approval** before proceeding. Incorporate any feedback they give.
-
-### Phase 3: Write → Review → Iterate
-
-Use the **coder** and **code-reviewer** sub-agents in a loop:
-
-#### Step 1: Write (coder agent)
-
-Launch the `coder` sub-agent via the Task tool with `subagent_type: "coder"`. Include in the prompt:
-
-- The approved test plan from Phase 2
-- The target source file path(s)
-- The test file path to create/edit
-- The testing rules below
-- The contents of `../../docs/testing-principles.md`
-- The existing test patterns discovered in Phase 1 (nearby test examples, test-utils available)
-
-**Testing rules for the coder prompt:**
-
-- Query by role, label, placeholder, text — never by class/id/test-id
-- Test user-visible behavior, not implementation
-- Use `userEvent` (not `fireEvent`) for interactions
-- One assertion concept per test (multiple `expect` OK if testing one behavior)
-- Use `setUpTest()` pattern for shared setup
-- Use element selector objects for repeated queries
-- Flat test structure — avoid nested `describe` blocks. One `describe` per suite max.
-- Follow existing project conventions discovered in Phase 1
-
-**setUpTest variation selection** — choose based on test type:
-
-- **Store/utility tests** → return store + deps, no render
-- **Component tests** → return async `render()`, tests call it
-- **Complex domains** → hierarchical: `setUpTestWith[Feature]` layering
-- **Pre-loaded state** → pair sync `setUpTest` + async `setUpLoadedTest`
-
-See `../../docs/testing-principles.md` § setUpTest Pattern for full examples of each variation.
-
-**File structure template to include in coder prompt:**
+## File Structure Template
 
 ```typescript
 // Imports
@@ -134,75 +79,46 @@ const elements = {
 };
 ```
 
-#### Step 2: Review (code-reviewer agent)
+## Testing Rules Checklist
 
-After the coder finishes, launch the `code-reviewer` sub-agent via the Task tool with `subagent_type: "code-reviewer"`. Include in the prompt:
+- [ ] Query by role, label, placeholder, text — never by class/id/test-id (see query priority in `../../docs/testing-principles.md`)
+- [ ] Test user-visible behavior, not implementation details
+- [ ] Use `userEvent` (not `fireEvent`) for all interactions
+- [ ] One assertion concept per test (multiple `expect` OK if testing one behavior)
+- [ ] Flat test structure — one `describe` per suite max, no nesting
+- [ ] Name tests `must [behavior] when [condition]`
+- [ ] Use `setUpTest()` pattern for shared setup (see decision guide above)
+- [ ] Use element selector objects for repeated queries
+- [ ] Follow existing project conventions from nearby test files
 
-- The test file that was written/modified
-- The source file(s) being tested
-- Ask it to review for:
-  - Correctness: do tests actually verify the described behavior?
-  - Testing Library best practices (role queries, userEvent, no implementation testing)
-  - Project convention adherence (setUpTest pattern, element selectors, naming)
-  - Missing edge cases or branches (especially if `full` coverage mode)
-  - Anti-patterns: snapshot tests, manual DOM traversal, excessive mocking, testing framework internals
+## Coverage Commands
 
-#### Step 3: Iterate
-
-If the reviewer reports **major issues** (incorrect assertions, missing critical tests, anti-patterns, convention violations):
-
-1. Launch the `coder` agent again with the review feedback to fix the issues
-2. Launch the `code-reviewer` agent again to verify fixes
-3. Repeat until no major issues remain
-
-**Stop iterating** when the reviewer reports only minor/cosmetic issues or no issues. Max 3 iterations to avoid unbounded loops.
-
-### Phase 4: Verify
-
-1. Run the tests: `yarn test [test-file-pattern]`
-2. If coverage mode is `full`, run coverage scoped to the source files under test:
-   ```
-   yarn test:coverage [test-file] --coverage.include='[source-file]'
-   ```
-   Multiple source files use repeated flags:
-   ```
-   yarn test:coverage [test-file] --coverage.include='[file1]' --coverage.include='[file2]'
-   ```
-   Example: testing `DrawingEditor.tsx` via its test suite:
-   ```
-   yarn test:coverage src/DrawingEditor/DrawingEditor.test.ts --coverage.include='src/DrawingEditor/DrawingEditor.tsx'
-   ```
-   This ensures coverage reports only the files the suite is responsible for, not the entire project.
-3. Fix any failures — re-run until green
-4. If `full` coverage: check uncovered lines, add tests, repeat until 100%
-
-### Phase 5: Report
-
-Present results:
-
+Run tests:
 ```
-## Test Results: [suite name]
-
-**Status**: [pass | fail]
-**Coverage mode**: [full | quick]
-
-### Tests written ([count]):
-- ✓ [test name]
-- ✓ [test name]
-...
-
-### Coverage ([full only]):
-| Metric     | % |
-|------------|---|
-| Statements | X |
-| Branches   | X |
-| Functions  | X |
-| Lines      | X |
-
-### Uncovered lines ([if any]):
-- [file:line - reason]
+yarn test [test-file-pattern]
 ```
 
-## References
+Run scoped coverage:
+```
+yarn test:coverage [test-file] --coverage.include='[source-file]'
+```
 
-For Kent C. Dodds testing principles and Testing Library best practices, read `../../docs/testing-principles.md`.
+Multiple source files use repeated flags:
+```
+yarn test:coverage [test-file] --coverage.include='[file1]' --coverage.include='[file2]'
+```
+
+Example:
+```
+yarn test:coverage src/DrawingEditor/DrawingEditor.test.ts --coverage.include='src/DrawingEditor/DrawingEditor.tsx'
+```
+
+## Anti-Pattern Reminders
+
+- **No snapshot tests** — brittle, low signal, hard to review
+- **No implementation testing** — don't check internal state, `wrapper.instance()`, or private fields
+- **No manual DOM traversal** — never use `container.querySelector(".my-class")`
+- **No excessive mocking** — mock at boundaries (APIs, stores), not internals
+- **No copy-paste tests** — extract `setUpTest()` helpers instead
+- **No testing library code** — don't test MobX reactivity or React rendering itself
+- **No asserting on mock call counts** — prefer asserting on visible outcomes
