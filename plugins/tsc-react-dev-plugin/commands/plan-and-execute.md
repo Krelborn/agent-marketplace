@@ -44,7 +44,16 @@ If the investigation surfaced any ambiguities, unknowns, or decisions that requi
 
 Output the complete plan **directly in your response** as formatted text. Never write the plan to a file. Then use `AskUserQuestion` to ask the user to approve the plan, request changes, or reject it.
 
-**Do NOT proceed to Phase 3 until the user has explicitly approved the plan.**
+**Approval loop — this is critical:**
+
+1. After presenting the plan, ask the user to approve, request changes, or reject.
+2. If the user responds with **anything other than clear, unambiguous approval** (e.g., they ask questions, suggest modifications, raise concerns, or request clarification), you MUST:
+   - Answer their questions and/or revise the plan as needed
+   - Re-present the updated plan (or confirm no changes were needed)
+   - Ask for approval again using `AskUserQuestion`
+3. **Repeat step 2** as many times as necessary. There is no limit on iterations.
+4. Only treat responses like "approved", "go ahead", "looks good", "yes", "ship it", or similarly unambiguous affirmatives as approval.
+5. **Do NOT proceed to Phase 3 until the user has given explicit, unambiguous approval.** A question or change request is NOT approval, even if it sounds positive. When in doubt, ask again.
 
 ## Testing Principles
 
@@ -102,4 +111,4 @@ Run the verification steps from the plan (type checker, test suite, linter). If 
 - **Handle failures** — if a subagent fails or gets stuck after 3 attempts, report to the user and ask how to proceed
 - **Plan in chat, not in files** — always output the plan directly in your response text; never write it to a file
 - **Resolve before executing** — use AskUserQuestion to resolve every ambiguity before starting Phase 3; never proceed with unresolved questions
-- **Explicit approval required** — do not start execution until the user has explicitly approved the plan via AskUserQuestion
+- **Explicit approval required** — do not start execution until the user has given clear, unambiguous approval. If the user responds to an approval prompt with questions, concerns, or change requests, answer them, revise the plan if needed, and ask for approval again. Repeat until approval is given. A question is never approval.
