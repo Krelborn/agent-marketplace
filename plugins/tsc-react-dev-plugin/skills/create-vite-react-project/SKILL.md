@@ -20,7 +20,7 @@ Follow these steps **exactly in order**. Every dependency must be installed via 
 ### 1. Scaffold the Vite project
 
 ```bash
-npm create vite@latest <project-name> -- --template react-ts
+npm create vite@latest <project-name> -- --template react-compiler-ts --no-interactive
 cd <project-name>
 npm install
 ```

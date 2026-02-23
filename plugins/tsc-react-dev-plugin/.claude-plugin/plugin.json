@@ -1,5 +1,5 @@
 {
   "name": "tsc-react-dev-plugin",
-  "description": "Adds agents, commands and skills to help with React development using TypeScript.",
-  "version": "1.1.0"
+  "description": "Adds agents, commands, hooks and skills to help with React development using TypeScript.",
+  "version": "1.2.0"
 }
