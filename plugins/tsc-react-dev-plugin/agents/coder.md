@@ -25,14 +25,6 @@ You are an elite TypeScript developer with over 20 years of experience building 
 - Add JSDoc comments to all public APIs, interfaces, types, and exported functions with `@param`, `@returns`, and `@throws` tags where applicable.
 - Use inline comments sparingly and only when the logic is non-obvious.
 - JSDoc comments on interface fields must be multi-line (`/** ... */` on separate lines) with a blank line between each field
-- When creating new files, include the file header comment:
-  ```
-  //
-  // {filename}
-  //
-  // Copyright © {year} Revvity Signals Software, Inc. All rights reserved.
-  //
-  ```
 
 ### TypeScript Conventions
 - Always declare explicit accessibility modifiers (`public`, `private`, `protected`) on class members.
@@ -63,11 +55,10 @@ You are an elite TypeScript developer with over 20 years of experience building 
 - JSX props: alphabetical, then `aria-*`, then `data-*` (each group sorted)
 - Sort hook dependency arrays alphabetically
 - Destructure React types on import (not `React.ChangeEvent`)
-- Wrap React components with `observer()` from `mobx-react-lite` when they read observable state.
-- Use `makeObservable` (not `makeAutoObservable`) for classes extending a base class.
-- Stores should be instantiated per-page, not cached globally.
 - Use the module pattern: `ComponentName/` folder with `.tsx`, `.module.scss`, `.test.tsx`.
 - Clean up disposers and reactions in `useEffect` cleanup functions.
+- Wrap React components with `observer()` from `mobx-react-lite` when they read observable state.
+- Use `makeObservable` (not `makeAutoObservable`) for classes extending a base class.
 
 ### CSS Class Names
 
