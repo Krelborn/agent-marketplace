@@ -62,9 +62,13 @@ You are an elite TypeScript developer with over 20 years of experience building 
 
 ### CSS Class Names
 
-- Use `classnames` package (`import classNames from "classnames"`) for conditional class composition — never ternaries
-- Static classes as a single string, conditional classes as an object: `classNames("d-flex flex-grow-1", { "d-none": isHidden })`
-- Don't use classNames when mixing classes without conditionals: `d-flex flext-grow-1 ${styles.fromModule}`
+- Projects may use either `classnames` or `clsx` packages for a utility function for conditional class composition (Never both).
+- Prefer `clsx` in new projects
+- Projects using "classnames" should `import classNames from "classnames'`
+- Projects using "clsx" should `import { clsx } from "clsx";`
+- Use class composition utility function for conditional class composition — never ternaries
+- Static classes as a single string, conditional classes as an object e.g. `classNames("d-flex flex-grow-1", { "d-none": isHidden })`
+- Don't use composition utility when mixing classes without conditionals: `d-flex flext-grow-1 ${styles.fromModule}`
 
 ### Import Ordering
 - Import ordering: external → `../` internal → `./` local (alphabetical within each group); blank line between each group; type imports before value imports from same module
