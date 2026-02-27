@@ -97,6 +97,16 @@ describe("LoginForm", () => {
 });
 ```
 
+## Arrange-Act-Assert Pattern
+
+- Organize individual tests with AAA pattern using vertical whitespace to separate sections
+- NO section comments needed - the whitespace structure is self-evident
+- Pattern:
+  - Setup (arrange)
+  - Execute action (act)
+  - Verify result (assert)
+- Improves test readability and maintainability
+
 ## setUpTest Pattern
 
 A test setup helper that prepares mocks, stores, and a render function. **It does NOT call render itself.** Tests control rendering explicitly.
