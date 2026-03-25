@@ -1,12 +1,21 @@
-# Testing Principles
+# Testing Guidance
 
-Based on Kent C. Dodds' testing philosophy adapted for Vitest + Testing Library.
+Practical guidance for writing unit tests in TypeScript/React codebases using Vitest, @testing-library/react, and @testing-library/user-event.
 
 ## Core Principle
 
 > The more your tests resemble the way your software is used, the more confidence they can give you.
 
 Test user behavior, not implementation details. If a user can't observe it, don't test it.
+
+## Scenario Identification
+
+| Scenario             | Signals                                    | setUpTest variation  | Key tools                                          |
+| -------------------- | ------------------------------------------ | -------------------- | -------------------------------------------------- |
+| **React component**  | `.tsx` file, JSX, renders UI               | Deferred render      | `renderWithRootStore()`, `userEvent`, role queries |
+| **MobX store**       | `makeObservable`, `@observable`, `@action` | Store-only           | `MockRootStore`, `when()` from MobX                |
+| **Utility function** | Pure function, no React/MobX imports       | Store-only (or none) | Direct calls, no rendering                         |
+| **API layer**        | API calls, signal handling, fetch/axios    | Store-only           | `MockSignals` pattern, mock API responses          |
 
 ## Query Priority
 
@@ -75,7 +84,7 @@ await act(async () => {
 });
 ```
 
-## Test Structure
+## Test Structure & Naming
 
 Flat structure, no nesting beyond one `describe`:
 
@@ -97,22 +106,22 @@ describe("LoginForm", () => {
 });
 ```
 
+Use `must [behavior] when [condition]` pattern:
+
+```typescript
+test("must show error message when email is invalid", ...);
+test("must disable submit button while request is pending", ...);
+test("must call onSave with updated values when form is submitted", ...);
+test("must render empty state when no items exist", ...);
+```
+
 ## setUpTest Pattern
 
 A test setup helper that prepares mocks, stores, and a render function. **It does NOT call render itself.** Tests control rendering explicitly.
 
-```typescript
-function setUpTest(options = {}) {
-  // 1. Create mocks, stores, test data
-  // 2. Configure mock behavior
-  // 3. Optionally create a render() function
-  return { store, render, ...handlers };
-}
-```
+### setUpTest Decision Guide
 
-### Store Tests
-
-No rendering — return store + dependencies.
+**Store-only** — No UI to render. Return store + dependencies directly.
 
 ```typescript
 function setUpTest() {
@@ -128,9 +137,7 @@ test("must create item", async () => {
 });
 ```
 
-### Component Tests — Deferred Render (most common)
-
-Returns an async `render()` function. Tests call it when ready.
+**Deferred render** (most common for components) — Returns async `render()`. Tests call it when ready.
 
 ```typescript
 function setUpTest({ item = null } = {}) {
@@ -158,9 +165,7 @@ test("must render editor", async () => {
 
 Note: `renderTL` is Testing Library's `render`, renamed to avoid collision with the local `render` function.
 
-### Hierarchical Helpers
-
-For complex domains, layer complexity progressively. Each helper builds on the previous:
+**Hierarchical** (`setUpTestWith[Feature]`) — Complex domains with shared base setup and feature-specific extensions.
 
 ```typescript
 function setUpTest() { ... }
@@ -169,6 +174,8 @@ function setUpTestWithEditor() { return { ...setUpTestWithItem(), editor }; }
 ```
 
 Tests pick the level of setup they need.
+
+**Pre-loaded state** — Pair sync `setUpTest` + async `setUpLoadedTest` when tests need data already loaded.
 
 ### Key Conventions
 
@@ -180,15 +187,45 @@ Tests pick the level of setup they need.
 - **Async waits**: return `waitFor*` helpers using MobX `when()` or Testing Library `waitFor()`
 - **Mock reset**: `vi.resetAllMocks()` at start when needed
 
-## Naming Convention
-
-Use `must [behavior] when [condition]` pattern:
+## File Structure Template
 
 ```typescript
-test("must show error message when email is invalid", ...);
-test("must disable submit button while request is pending", ...);
-test("must call onSave with updated values when form is submitted", ...);
-test("must render empty state when no items exist", ...);
+// Imports
+
+// Mocks (vi.mock calls — hoisted, declare before imports)
+
+// Types/interfaces if needed
+
+// Tests
+describe("ComponentName", () => {
+  test("must [expected behavior] when [condition]", async () => {
+    // Arrange
+    // Act
+    // Assert
+  });
+});
+
+// Setup helper — deferred render variation (most common for components)
+function setUpTest({
+  /* option = default */
+} = {}) {
+  // Create mocks, stores, test data
+  const store = new MockStore();
+
+  const render = async () => {
+    renderTL(/* <Provider><Component /></Provider> */);
+    await screen.findByRole("region", { name: "..." });
+  };
+
+  return { store, render };
+}
+
+// Element selectors (for component tests)
+const elements = {
+  get submitButton() {
+    return screen.getByRole("button", { name: "Submit" });
+  },
+};
 ```
 
 ## What to Test
@@ -211,12 +248,44 @@ test("must render empty state when no items exist", ...);
 - Private store fields (test via public behavior)
 - Things the framework guarantees
 
-## Anti-Patterns to Avoid
+## Coverage Commands
 
-1. **Snapshot tests** — brittle, low signal, hard to review
-2. **Testing implementation** — `wrapper.instance()`, internal state checks
-3. **Manual DOM traversal** — `container.querySelector(".my-class")`
-4. **Excessive mocking** — mock boundaries (APIs, stores), not internals
-5. **Copy-paste tests** — extract `setUpTest()` helpers instead
-6. **Testing library code** — don't test MobX reactivity or React rendering itself
-7. **Asserting on mock call counts** — assert on visible outcomes instead when possible
+Run tests:
+
+```
+yarn test [test-file-pattern]
+```
+
+Run scoped coverage:
+
+```
+yarn test:coverage [test-file] --coverage.include='[source-file]'
+```
+
+Multiple source files use repeated flags:
+
+```
+yarn test:coverage [test-file] --coverage.include='[file1]' --coverage.include='[file2]'
+```
+
+## Anti-Patterns
+
+1. **No snapshot tests** — brittle, low signal, hard to review
+2. **No implementation testing** — don't check internal state, `wrapper.instance()`, or private fields
+3. **No manual DOM traversal** — never use `container.querySelector(".my-class")`
+4. **No excessive mocking** — mock at boundaries (APIs, stores), not internals
+5. **No copy-paste tests** — extract `setUpTest()` helpers instead
+6. **No testing library code** — don't test MobX reactivity or React rendering itself
+7. **No asserting on mock call counts** — prefer asserting on visible outcomes
+
+## Checklist
+
+- [ ] Query by role, label, placeholder, text — never by class/id/test-id
+- [ ] Test user-visible behavior, not implementation details
+- [ ] Use `userEvent` (not `fireEvent`) for all interactions
+- [ ] One assertion concept per test (multiple `expect` OK if testing one behavior)
+- [ ] Flat test structure — one `describe` per suite max, no nesting
+- [ ] Name tests `must [behavior] when [condition]`
+- [ ] Use `setUpTest()` pattern for shared setup
+- [ ] Use element selector objects for repeated queries
+- [ ] Follow existing project conventions from nearby test files

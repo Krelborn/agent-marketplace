@@ -59,11 +59,11 @@ Output the complete plan **directly in your response** as formatted text. Never 
 
 When any layer involves writing or modifying unit tests, every Coder subagent brief for that layer MUST include the instruction:
 
-> Read `../skills/unit-test/SKILL.md` for testing decision guidance and `../docs/testing-principles.md` for principles and pattern examples. Follow both.
+> Read `../skills/unit-test/references/testing-guidance.md` for testing decision guidance, principles, and pattern examples. Follow it.
 
 Unless the user's prompt explicitly states otherwise, **100% test coverage is required** for all new or modified code. Coder subagents writing tests must target 100% line, branch, and function coverage. Reviewers must flag uncovered paths as blocking issues.
 
-Reviewers checking test layers must also read both files and verify adherence — flag violations of query priority, naming conventions, interaction patterns, or structural rules as blocking issues.
+Reviewers checking test layers must also read that file and verify adherence — flag violations of query priority, naming conventions, interaction patterns, or structural rules as blocking issues.
 
 ## Phase 3: Execute
 
@@ -74,14 +74,13 @@ For each layer in the plan:
    - Relevant file paths from the investigation
    - Acceptance criteria
    - Context from any completed dependency layers
-   - If the layer involves tests: the instruction to read and follow `../skills/unit-test/SKILL.md` and `../docs/testing-principles.md`
+   - If the layer involves tests: the instruction to read and follow `../skills/unit-test/references/testing-guidance.md`
 2. **Dispatch Reviewer**: When the Coder completes, launch a Code Review subagent to review the changes. The reviewer should check:
-
    - Correctness and adherence to the plan
    - Missed files or incomplete changes
    - Unnecessary remnants (dead code, redundant guards, stale comments)
    - Consistency with the existing codebase
-   - If tests were written: compliance with `../skills/unit-test/SKILL.md` and `../docs/testing-principles.md` (query priority, `userEvent` over `fireEvent`, flat structure, `must [behavior] when [condition]` naming, no snapshot tests or implementation detail testing)
+   - If tests were written: compliance with `../skills/unit-test/references/testing-guidance.md` (query priority, `userEvent` over `fireEvent`, flat structure, `must [behavior] when [condition]` naming, no snapshot tests or implementation detail testing)
 
 3. **Iterate**: If the reviewer flags issues, pass the specific feedback back to a Coder subagent. Repeat until the reviewer approves. If the same issue persists after 3 iterations, surface it to the user.
 
