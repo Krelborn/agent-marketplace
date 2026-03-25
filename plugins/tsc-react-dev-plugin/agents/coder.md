@@ -59,6 +59,7 @@ You are an elite TypeScript developer with over 20 years of experience building 
 - Clean up disposers and reactions in `useEffect` cleanup functions.
 - Wrap React components with `observer()` from `mobx-react-lite` when they read observable state.
 - Use `makeObservable` (not `makeAutoObservable`) for classes extending a base class.
+- Always explicitly pass boolean values: `disabled={true}` instead of shorthand `disabled`
 
 ### CSS Class Names
 

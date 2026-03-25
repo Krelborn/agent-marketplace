@@ -114,6 +114,15 @@ test("must disable submit button while request is pending", ...);
 test("must call onSave with updated values when form is submitted", ...);
 test("must render empty state when no items exist", ...);
 ```
+## Arrange-Act-Assert Pattern
+
+- Organize individual tests with AAA pattern using vertical whitespace to separate sections
+- NO section comments needed - the whitespace structure is self-evident
+- Pattern:
+  - Setup (arrange)
+  - Execute action (act)
+  - Verify result (assert)
+- Improves test readability and maintainability
 
 ## setUpTest Pattern
 
