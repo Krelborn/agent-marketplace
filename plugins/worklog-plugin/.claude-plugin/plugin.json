@@ -1,0 +1,5 @@
+{
+  "name": "worklog-plugin",
+  "description": "Local task management with GitHub Issues-like workflow. Creates, lists, updates, and closes tasks stored as markdown files in .claude/worklog/.",
+  "version": "1.0.0"
+}
