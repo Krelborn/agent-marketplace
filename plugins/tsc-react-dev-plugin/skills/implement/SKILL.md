@@ -21,6 +21,7 @@ For each unit of work:
 
 **1. Dispatch Coder** — Launch a Coder subagent (`subagent_type: "tsc-react-dev-plugin:coder"`) with a focused brief containing ONLY:
 
+- **This critical instruction at the top of every brief**: "The plan is already complete. Do NOT plan or outline an approach — skip straight to reading the relevant files and writing code. Every response must include actual code changes via Edit/Write tools."
 - The specific tasks for that unit
 - Relevant file paths
 - Acceptance criteria
