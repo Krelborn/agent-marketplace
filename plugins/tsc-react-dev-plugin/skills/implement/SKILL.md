@@ -1,117 +1,88 @@
 ---
 name: implement
-description: "Plan and implement code changes for TypeScript/React codebases. Orchestrates investigation and planning interactively in the main context, then forks execution (coder/reviewer loops, final review, verification) to a dedicated subagent. Triggers on: 'implement', 'plan and execute', 'make this change', 'build this feature', '/implement', or when the user describes a substantial code change to plan and execute."
+description: "Execute an approved implementation plan using coordinated Coder and Code Review subagents. Reads the plan from plan mode context, then implements it step by step with coder/reviewer loops, parallel final review, and verification. Triggers on: '/implement', 'execute this plan', 'implement the plan', or when the user wants to execute an approved plan after planning."
 ---
 
 # Implement Skill
 
-You are a **coordination-only** orchestrator. You MUST NOT write or modify any code directly. Your job is to investigate, plan a change with the user, then hand off execution to a subagent.
+You are a **coordination-only** orchestrator. You MUST NOT write or modify any code directly. Your job is to execute an approved plan by dispatching Coder and Code Review subagents.
 
 ## Input
 
-The user has provided: $ARGUMENTS
+Read the plan file from the plan mode context in this conversation.
 
-If the argument is a file path, read the file for the change description. Otherwise treat the argument as an inline description of the change.
+If no plan file is found in the conversation context, ask the user to provide the plan file path.
 
-## Phase 1: Investigate
+## Execution
 
-Use an Explore subagent to:
+Break the plan into focused units of work. Each unit should be a coherent, reviewable chunk — respect any ordering or dependencies the plan specifies. Where the plan doesn't specify ordering, work from foundational changes (types, schemas, utilities) outward to consumers (components, tests).
 
-1. Understand the change being requested
-2. Trace through the codebase to identify every file and module affected
-3. Map dependencies — what depends on what, and in what order things need to change
-4. Identify any risks, edge cases, or ambiguities
+For each unit of work:
 
-Return a concise summary of findings. Do NOT load full file contents into your own context — only the dependency map and key observations.
+**1. Dispatch Coder** — Launch a Coder subagent (`subagent_type: "tsc-react-dev-plugin:coder"`) with a focused brief containing ONLY:
 
-## Phase 2: Plan
+- The specific tasks for that unit
+- Relevant file paths
+- Acceptance criteria
+- Context from any completed prior work (summarize outcomes, don't paste full code)
+- If the unit involves tests: "Read the testing-guidance.md file from the unit-test skill's references directory for testing decision guidance. Follow it."
 
-Based on the investigation, produce a structured plan with these sections:
+**2. Dispatch Reviewer** — When the Coder completes, launch a Code Review subagent (`subagent_type: "tsc-react-dev-plugin:code-reviewer"`) to review:
 
-1. **Summary**: One paragraph describing the change and its blast radius
-2. **Layers**: Break the work into ordered layers where each layer is a coherent unit of change:
-   - Each layer should have a clear scope (e.g., "Update the schema", "Fix downstream types", "Update tests")
-   - Note dependencies between layers (which must complete before others can start)
-   - Identify any layers that can run in parallel
-3. **Risks**: Anything that could go wrong
-4. **Verification**: How to confirm the change is correct (type checker, test suite, manual checks)
+- Correctness and adherence to the plan
+- Missed files or incomplete changes
+- Unnecessary remnants (dead code, redundant guards, stale comments)
+- Consistency with the existing codebase
+- If tests were written: verify adherence to testing guidance (query priority, `userEvent` over `fireEvent`, flat structure, `must [behavior] when [condition]` naming, no snapshot tests or implementation detail testing)
 
-### Testing requirements
+**3. Iterate** — If the reviewer flags issues, pass specific feedback back to a Coder subagent. Repeat until approved. Max 3 iterations — if the same issue persists, surface it to the user and stop.
 
-Unless the user explicitly states otherwise, **100% test coverage is required** for all new or modified code. For each layer that involves tests, note in the plan:
+**4. Continue** — Once a unit is approved, move to the next. Run independent units concurrently where possible.
 
-- Which source files need test coverage
-- Whether tests are new or modifications to existing tests
+## Final Review
 
-### Resolve ambiguities first
+After ALL work is complete, launch 3 independent Code Review subagents in parallel:
 
-If the investigation surfaced any ambiguities, unknowns, or decisions that require user input, use `AskUserQuestion` to resolve **every one of them** before presenting the plan. Do not list unresolved questions in the plan — resolve them now.
+- **Reviewer 1 — Correctness**: Logic errors, edge cases, missed files, type errors
+- **Reviewer 2 — Consistency**: Changes work together, no conflicting modifications, adherence to the plan
+- **Reviewer 3 — Quality**: Error handling, test coverage, dead code removal, documentation if relevant
 
-### Present the plan and get approval
+If issues are raised, dispatch a Coder subagent to fix them, then re-review only the affected changes.
 
-Output the complete plan **directly in your response** as formatted text. Never write the plan to a file during this phase. Then use `AskUserQuestion` to ask the user to approve the plan, request changes, or reject it.
+## Verify
 
-**Approval loop — this is critical:**
+Run the verification steps from the plan (type checker, test suite, linter). If verification fails, dispatch a Coder subagent with the failure output, review the fix, re-verify. Max 3 attempts, then report to the user.
 
-1. After presenting the plan, ask the user to approve, request changes, or reject.
-2. If the user responds with **anything other than clear, unambiguous approval** (e.g., they ask questions, suggest modifications, raise concerns, or request clarification), you MUST:
-   - Answer their questions and/or revise the plan as needed
-   - Re-present the updated plan (or confirm no changes were needed)
-   - Ask for approval again using `AskUserQuestion`
-3. **Repeat step 2** as many times as necessary. There is no limit on iterations.
-4. Only treat responses like "approved", "go ahead", "looks good", "yes", "ship it", or similarly unambiguous affirmatives as approval.
-5. **Do NOT proceed to Phase 3 until the user has given explicit, unambiguous approval.** A question or change request is NOT approval, even if it sounds positive. When in doubt, ask again.
+## Report
 
-## Phase 3: Dispatch Execution
-
-After the user approves the plan:
-
-### Persist the plan
-
-Write the approved plan to a file so the execution subagent can read it:
-
-- **If a plan mode file path is available** (check your system message for a plan file path): write the plan there.
-- **Otherwise**: write the plan to `.claude/implement-plan.md` in the project root.
-
-Record the path — you will pass it to the execution subagent.
-
-### Launch the execution subagent
-
-Dispatch a single Agent subagent (with NO `subagent_type` so it retains access to the Agent tool for dispatching its own coder/reviewer subagents). Include in the prompt:
-
-1. The plan file path
-2. Instruction: "Read `references/execution-playbook.md` relative to the implement skill for your full execution instructions. Follow them."
-3. The skill directory path (so the subagent can resolve relative references)
-4. Key file paths from the investigation phase
-5. Any user-specified constraints or preferences
-
-Example dispatch prompt:
+Present structured results:
 
 ```
-You are an execution orchestrator. Your job is to implement an approved plan using Coder and Code Review subagents.
+## Execution Complete
 
-**Plan file**: [path]
-**Skill directory**: [path to skills/implement/]
+**Status**: [pass | fail | partial]
+**Steps completed**: [N/M]
 
-Read the execution playbook at [skill-dir]/references/execution-playbook.md for your full instructions. Follow them precisely.
+### Changes made:
+- [step]: [brief summary]
 
-Key files identified during investigation:
-- [file list]
+### Verification results:
+- Type checker: [pass | fail]
+- Tests: [pass | fail] ([count] tests)
+- Coverage: [% if applicable]
+- Linter: [pass | fail]
 
-Constraints:
-- [any user constraints]
+### Issues (if any):
+- [description]
 ```
-
-After dispatching, report to the user that execution has been handed off and summarise what the subagent will do.
 
 ## Rules
 
 - **Never write code yourself** — all implementation and review happens via subagents
-- **Minimise your context** — pass subagents only what they need; summarise, don't copy
-- **Log progress** — after each phase transition, briefly note what completed and what is dispatching next
-- **Prefer small briefs** — focused subagent tasks over large monolithic ones
-- **User checkpoints** — present the plan before executing; surface persistent issues rather than looping forever
+- **Minimize your context** — pass subagents only what they need; summarize, don't copy
+- **Log progress** — after each unit, note what completed and what dispatches next
+- **Prefer small briefs** — one focused unit per Coder dispatch
+- **Escalate, don't loop** — same issue after 3 iterations means stop and report
+- **Respect dependencies** — never start work before its dependencies complete
+- **Run independent work concurrently**
 - **Handle failures** — if a subagent fails or gets stuck after 3 attempts, report to the user and ask how to proceed
-- **Plan in chat, not in files** — always output the plan directly in your response text during Phase 2; only write to file in Phase 3 for handoff
-- **Resolve before executing** — use AskUserQuestion to resolve every ambiguity before starting Phase 3; never proceed with unresolved questions
-- **Explicit approval required** — do not start execution until the user has given clear, unambiguous approval. If the user responds to an approval prompt with questions, concerns, or change requests, answer them, revise the plan if needed, and ask for approval again. Repeat until approval is given. A question is never approval.
