@@ -9,7 +9,8 @@ description: >
   (8) Visual/UX design and mockups, (9) Design system specification.
   Triggers on: "help me design", "capture requirements", "technical design", "component architecture",
   "design doc", "requirements doc", "break this down", "architect this", "visual design", "mockup",
-  "design system", "look and feel", "UX design", "/architect".
+  "design system", "look and feel", "UX design", "vertical slices", "task breakdown", "slice this feature",
+  "what order should we implement", "/architect".
 ---
 
 # Architect
@@ -98,13 +99,17 @@ When designing:
 
 ### Task Breakdown Phase
 
-Goal: break a design into well-scoped, ordered development tasks.
+Goal: break a design into thin vertical slices that prove out end-to-end functionality to deliver the user stories.
 
-1. Identify natural implementation boundaries (data layer, components, integration, polish)
-2. Order tasks by dependency (what must exist before other work can begin)
-3. Size tasks for reasonable PR scope (reviewable in one sitting)
-4. Note which tasks can be parallelized across developers
-5. Flag tasks that carry higher risk or uncertainty
+Read [references/vertical-slice-guidance.md](references/vertical-slice-guidance.md) for the vertical slice methodology.
+
+1. Gather inputs: collect the requirements document, technical design, and visual design (if any) produced in earlier phases
+2. Map user stories to slices: each slice delivers one user-visible capability end-to-end, cutting through all application layers rather than completing one layer at a time
+3. Find the thinnest version of each slice: defer validation, edge cases, and optimization to follow-up slices
+4. Write a clear definition of done for every slice using observable, testable acceptance criteria (not implementation details)
+5. Order slices by dependency — identify which can be parallelized
+6. Flag slices that carry higher risk or uncertainty
+7. Use the Task Breakdown Document template from [references/document-templates.md](references/document-templates.md) to produce the deliverable
 
 ## Guidelines
 

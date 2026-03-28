@@ -6,6 +6,7 @@
 - [Component Design Document](#component-design-document)
 - [Technical Design Document](#technical-design-document)
 - [API Contract Document](#api-contract-document)
+- [Task Breakdown Document](#task-breakdown-document)
 - [State Management Design](#state-management-design)
 
 ---
@@ -417,6 +418,87 @@ Use this template when defining the visual design for a specific feature or scre
 ## Open Visual Questions
 
 - [ ] [Unresolved visual decision needing input]
+```
+
+---
+
+## Task Breakdown Document
+
+Use this template when breaking a design into vertical slices for implementation. Each slice delivers end-to-end functionality that proves out a user capability.
+
+```markdown
+# Task Breakdown: [Feature Name]
+
+## Source Documents
+
+- Requirements: [link or reference]
+- Technical Design: [link or reference]
+- Visual Design: [link or reference, if applicable]
+
+## Stories Covered
+
+[List the user stories from the requirements doc that this breakdown delivers]
+
+## Vertical Slices
+
+### SLICE 1: [Capability Name]
+
+**Story:** As a [role], I want [capability] so that [benefit]
+
+**Layers touched:** [UI, API, Service, Data — whichever apply]
+
+**Description:** [1-2 sentences on what this slice proves end-to-end]
+
+**Definition of Done:**
+- [ ] [Observable, testable acceptance criterion]
+- [ ] [Observable, testable acceptance criterion]
+- [ ] [Observable, testable acceptance criterion]
+
+**Dependencies:** None (first slice) | SLICE N
+
+**Risk/Uncertainty:** Low | Medium | High — [brief reason if Medium/High]
+
+**Notes:** [Anything the implementer should know — shortcuts taken, what is deliberately deferred]
+
+### SLICE 1.1: [Refinement of Slice 1]
+
+**Story:** [Same or related story]
+
+**Layers touched:** [Layers]
+
+**Description:** [What this adds to the base slice]
+
+**Definition of Done:**
+- [ ] [Criterion]
+
+**Dependencies:** SLICE 1
+
+### SLICE 2: [Next Capability]
+
+...
+
+## Slice Dependency Graph
+
+[Show ordering and parallelism. Text or ASCII diagram.]
+
+```
+SLICE 1 ──→ SLICE 1.1
+         ──→ SLICE 1.2
+SLICE 2 ──→ SLICE 3
+SLICE 1 + SLICE 2 can be parallelized
+```
+
+## Summary
+
+| Slice | Capability | Dependencies | Risk | Est. Size |
+|-------|-----------|-------------|------|-----------|
+| 1 | [Name] | None | Low | [1-2 days] |
+| 1.1 | [Name] | Slice 1 | Low | [0.5-1 day] |
+| 2 | [Name] | None | Medium | [1-2 days] |
+
+## Open Questions
+
+- [ ] [Anything unresolved that affects slicing]
 ```
 
 ---
