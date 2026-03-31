@@ -42,11 +42,12 @@ For each unit of work:
 
 ## Final Review
 
-After ALL work is complete, launch 3 independent Code Review subagents in parallel:
+After ALL work is complete, launch reviewers in parallel:
 
-- **Reviewer 1 — Correctness**: Logic errors, edge cases, missed files, type errors
-- **Reviewer 2 — Consistency**: Changes work together, no conflicting modifications, adherence to the plan
-- **Reviewer 3 — Quality**: Error handling, test coverage, dead code removal, documentation if relevant
+- **Reviewer 1 — Correctness**: Logic errors, edge cases, missed files, type errors (subagent: `tsc-react-dev-plugin:code-reviewer`)
+- **Reviewer 2 — Consistency**: Changes work together, no conflicting modifications, adherence to the plan (subagent: `tsc-react-dev-plugin:code-reviewer`)
+- **Reviewer 3 — Quality**: Error handling, test coverage, dead code removal, documentation if relevant (subagent: `tsc-react-dev-plugin:code-reviewer`)
+- **Reviewer 4 — Component Quality** (only if `.tsx` files were changed): DRY composition, props docs, accessibility, simplicity. Use skill `tsc-react-dev-plugin:component-review` — it will read its own reference file for review criteria
 
 If issues are raised, dispatch a Coder subagent to fix them, then re-review only the affected changes.
 
