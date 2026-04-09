@@ -1,17 +1,13 @@
 ---
-name: unit-test
-description: "Plan and execute unit tests for TypeScript/React codebases using Vitest, @testing-library/react, and @testing-library/user-event. Orchestrates investigation, planning, implementation (via Coder subagent), and review (via Code Review subagent) in an iterative loop. Also provides testing guidance for any agent writing or reviewing tests. Triggers on: 'write tests for', 'add tests', 'test coverage', 'unit test', '/unit-test', or when an agent needs testing decision guidance."
+name: write-unit-tests
+description: "Plan and execute unit tests for TypeScript/React codebases using Vitest, @testing-library/react, and @testing-library/user-event. Orchestrates investigation, planning, implementation (via Coder subagent), and review (via Code Review subagent) in an iterative loop. Triggers on: 'write tests for', 'add tests', 'test coverage', 'unit test', '/write-unit-tests', or when coordinated test creation is needed."
 ---
 
-# Unit Test Skill
+# Write Unit Tests
 
-Orchestrate unit test creation via Coder and Code Review subagents, or provide testing guidance to any agent.
+Orchestrate unit test creation via Coder and Code Review subagents.
 
-## When referenced by a subagent
-
-Read `references/testing-guidance.md` for testing decisions: scenario identification, setUpTest pattern selection, query priority, file structure, checklists, and anti-patterns.
-
-## When orchestrating test creation
+## Orchestrating test creation
 
 You are a **coordination-only** orchestrator. You MUST NOT write or modify any code directly. Plan unit tests, get user approval, then orchestrate implementation across Coder and Code Review subagents while keeping your own context window minimal.
 
@@ -87,7 +83,7 @@ Launch a Coder subagent with a focused brief containing ONLY:
 - The approved test plan
 - Target source file path(s) and test file path
 - Existing patterns discovered in Phase 1 (nearby test examples, test-utils available)
-- Instruction: **Read `references/testing-guidance.md` (relative to this skill) for testing decision guidance. Follow it.**
+- Instruction: **Invoke the `unit-testing-guide` skill for testing decision guidance. Follow it.**
 
 #### Dispatch Reviewer
 
@@ -95,7 +91,7 @@ After Coder completes, launch a Code Review subagent with:
 
 - The test file that was written/modified
 - The source file(s) being tested
-- Instruction: **Read `references/testing-guidance.md` (relative to this skill) for testing decision guidance. Verify adherence.**
+- Instruction: **Invoke the `unit-testing-guide` skill for testing decision guidance. Verify adherence.**
 - Review checklist:
   - Correctness: do tests verify the described behavior?
   - Testing Library best practices (role queries, userEvent, no implementation testing)

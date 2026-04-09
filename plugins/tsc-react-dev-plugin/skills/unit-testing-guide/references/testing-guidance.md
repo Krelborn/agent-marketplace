@@ -6,7 +6,7 @@ Practical guidance for writing unit tests in TypeScript/React codebases using Vi
 
 > The more your tests resemble the way your software is used, the more confidence they can give you.
 
-Test user behavior, not implementation details. If a user can't observe it, don't test it.
+Test user behavior, not implementation details. If a user can't observe it, don't test it. A good litmus test: if refactoring the component without changing its behavior breaks your test, the test was testing implementation details.
 
 ## Scenario Identification
 
@@ -30,6 +30,17 @@ Use queries in this order (most preferred first):
 7. `getByTitle` — rarely needed
 8. **Never**: `getByTestId`, class selectors, DOM structure queries
 
+Always use `screen` for queries — don't destructure from `render()`:
+
+```typescript
+// Good
+render(<MyComponent />);
+screen.getByRole("button", { name: "Save" });
+
+// Bad — destructuring from render couples tests to render's return API
+const { getByRole } = render(<MyComponent />);
+```
+
 Use `name` option with `getByRole` for specificity:
 
 ```typescript
@@ -40,17 +51,18 @@ screen.getByRole("dialog", { name: "Confirm Delete" });
 
 ## Interaction
 
-Always use `@testing-library/user-event` over `fireEvent`:
+Always use `@testing-library/user-event` over `fireEvent`. Use `userEvent.setup()` to create a user instance — this enables proper event sequencing:
 
 ```typescript
 import userEvent from "@testing-library/user-event";
 
-// Good
-await userEvent.click(button);
-await userEvent.type(input, "text");
-await userEvent.clear(input);
-await userEvent.selectOptions(select, "option");
-await userEvent.keyboard("{Enter}");
+// Good — setup creates a user instance with proper event interleaving
+const user = userEvent.setup();
+await user.click(button);
+await user.type(input, "text");
+await user.clear(input);
+await user.selectOptions(select, "option");
+await user.keyboard("{Enter}");
 
 // Bad — fireEvent doesn't simulate real user behavior
 fireEvent.click(button);
@@ -59,15 +71,30 @@ fireEvent.change(input, { target: { value: "text" } });
 
 ## Async Patterns
 
+Prefer `findBy*` queries for elements that appear asynchronously — they combine `getBy` + `waitFor` in one call. Only use `waitFor` when you need to assert on something more complex than element presence, and only wrap assertions that genuinely need to wait — don't wrap single synchronous assertions in `waitFor`. Let Testing Library handle `act()` through proper queries rather than wrapping everything in `act()` manually.
+
 ```typescript
-// Wait for element to appear
+// Best — findBy for async element appearance
+expect(await screen.findByText("Loaded")).toBeInTheDocument();
+
+// Good — waitFor for complex async assertions
 await waitFor(() => {
-  expect(screen.getByText("Loaded")).toBeInTheDocument();
+  expect(screen.getByRole("list")).toHaveTextContent("item 1");
 });
 
-// Wait for element to disappear
+// Good — wait for element to disappear
 await waitFor(() => {
   expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
+});
+
+// Bad — wrapping a synchronous assertion in waitFor
+await waitFor(() => {
+  expect(screen.getByText("Already Here")).toBeInTheDocument();
+});
+
+// Bad — manual act() when a proper query would handle it
+act(() => {
+  fireEvent.click(button);
 });
 
 // MobX observable changes
@@ -106,6 +133,22 @@ describe("LoginForm", () => {
 });
 ```
 
+Use `test.each` for similar scenarios with different inputs instead of loops or nested describes:
+
+```typescript
+test.each([
+  { input: "", expected: "Required" },
+  { input: "bad", expected: "Invalid email" },
+  { input: "a@b", expected: "Invalid email" },
+])("must show '$expected' when email is '$input'", async ({ input, expected }) => {
+  const { render } = setUpTest();
+  await render(<LoginForm />);
+  await user.type(screen.getByRole("textbox", { name: "Email" }), input);
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+  expect(screen.getByRole("alert")).toHaveTextContent(expected);
+});
+```
+
 Use `must [behavior] when [condition]` pattern:
 
 ```typescript
@@ -114,6 +157,7 @@ test("must disable submit button while request is pending", ...);
 test("must call onSave with updated values when form is submitted", ...);
 test("must render empty state when no items exist", ...);
 ```
+
 ## Arrange-Act-Assert Pattern
 
 - Organize individual tests with AAA pattern using vertical whitespace to separate sections
@@ -146,7 +190,7 @@ test("must create item", async () => {
 });
 ```
 
-**Simple/Presentational components** - Call render(<Component ... />) directly in each 
+**Simple/Presentational components** - Call render(<Component ... />) directly in each
 test so the props under test are visible at the call site. Reserve setUpTest for tests
 that need real setup work — store instantiation, context providers, or complex mock  
 wiring. Wrapping render in setUpTest just to pass props through adds indirection
@@ -159,6 +203,7 @@ function setUpTest({ prop1, prop2 } = {}) {
   return render;
 }
 ```
+
 Note: `renderBase` is Testing Library's `render`, renamed to avoid collision with the local `render` function.
 
 **Deferred render** (most common for components) — Returns async `render()`. Tests call it when ready.
@@ -300,15 +345,22 @@ yarn test:coverage [test-file] --coverage.include='[file1]' --coverage.include='
 5. **No copy-paste tests** — extract `setUpTest()` helpers instead
 6. **No testing library code** — don't test MobX reactivity or React rendering itself
 7. **No asserting on mock call counts** — prefer asserting on visible outcomes
+8. **No regex for known strings** — use exact string matches when the value is hardcoded in the component; regex like `/success/i` would still pass if casing changed unexpectedly
+9. **No manual cleanup** — React Testing Library handles cleanup automatically between tests
+10. **No unnecessary `act()` wrappers** — let Testing Library handle `act()` through proper queries; manual `act()` is only needed for direct state updates outside RTL's control
 
 ## Checklist
 
 - [ ] Query by role, label, placeholder, text — never by class/id/test-id
 - [ ] Test user-visible behavior, not implementation details
-- [ ] Use `userEvent` (not `fireEvent`) for all interactions
+- [ ] Use `screen` for all queries — never destructure from `render()`
+- [ ] Use `userEvent.setup()` and call methods on the returned user instance
+- [ ] Use `findBy*` for async element appearance, `waitFor` only for complex assertions
 - [ ] One assertion concept per test (multiple `expect` OK if testing one behavior)
 - [ ] Flat test structure — one `describe` per suite max, no nesting
 - [ ] Name tests `must [behavior] when [condition]`
 - [ ] Use `setUpTest()` pattern for shared setup
 - [ ] Use element selector objects for repeated queries
+- [ ] Use exact string matches, not regex, for known hardcoded values
+- [ ] Use `test.each` for similar scenarios with different inputs
 - [ ] Follow existing project conventions from nearby test files
