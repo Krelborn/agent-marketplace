@@ -146,6 +146,21 @@ test("must create item", async () => {
 });
 ```
 
+**Simple/Presentational components** - Call render(<Component ... />) directly in each 
+test so the props under test are visible at the call site. Reserve setUpTest for tests
+that need real setup work — store instantiation, context providers, or complex mock  
+wiring. Wrapping render in setUpTest just to pass props through adds indirection
+without value.
+
+```typescript
+// Bad: Don't do this
+function setUpTest({ prop1, prop2 } = {}) {
+  const render = () => renderBase(<MyComponent prop1={prop1} prop2={prop2} />);
+  return render;
+}
+```
+Note: `renderBase` is Testing Library's `render`, renamed to avoid collision with the local `render` function.
+
 **Deferred render** (most common for components) — Returns async `render()`. Tests call it when ready.
 
 ```typescript
@@ -153,12 +168,13 @@ function setUpTest({ item = null } = {}) {
   const store = new MockStore();
   store.item = item;
 
-  const render = async () => {
-    renderTL(
+  const render = async (ui: ReactNode) => {
+    renderBase(
       <StoreContext.Provider value={store}>
-        <MyComponent store={store} />
+        {ui}
       </StoreContext.Provider>
     );
+
     await screen.findByRole("region", { name: "Editor" });
   };
 
@@ -167,12 +183,10 @@ function setUpTest({ item = null } = {}) {
 
 test("must render editor", async () => {
   const { render } = setUpTest();
-  await render();
+  await render(<MyComponent />);
   expect(screen.getByRole("region", { name: "Editor" })).toBeInTheDocument();
 });
 ```
-
-Note: `renderTL` is Testing Library's `render`, renamed to avoid collision with the local `render` function.
 
 **Hierarchical** (`setUpTestWith[Feature]`) — Complex domains with shared base setup and feature-specific extensions.
 
@@ -221,8 +235,8 @@ function setUpTest({
   // Create mocks, stores, test data
   const store = new MockStore();
 
-  const render = async () => {
-    renderTL(/* <Provider><Component /></Provider> */);
+  const render = async (ui: ReactNode) => {
+    renderBase(/* <Provider>{ui}</Provider> */);
     await screen.findByRole("region", { name: "..." });
   };
 
