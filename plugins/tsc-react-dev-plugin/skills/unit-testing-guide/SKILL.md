@@ -1,16 +1,20 @@
 ---
 name: unit-testing-guide
 description: >-
-  Loads project testing standards for writing and reviewing Vitest unit tests
-  in TypeScript/React codebases. Covers Testing Library query priority, setUpTest
-  pattern selection, test naming conventions, async patterns, and anti-patterns.
-  Use this skill whenever you are: writing new test files or adding tests to
-  existing files, reviewing or giving feedback on test code, modifying .test.ts
-  or .test.tsx files, choosing between setUpTest variations, deciding how to
-  query or assert on rendered components, or fixing test failures related to
-  structure or conventions. This applies even for small test changes — loading
-  these standards ensures consistency. If you are touching test code in any
-  capacity, check this skill.
+  Use this skill whenever work involves or should involve Vitest unit tests
+  for TypeScript/React code. This includes writing new tests, adding test cases,
+  refactoring or restructuring existing test files, reviewing test code quality,
+  migrating test patterns (e.g. fireEvent to userEvent, nested describes to flat),
+  fixing act() warnings or async test issues, replacing snapshots with behavioral
+  assertions, updating queries to use proper roles, and any modification to
+  .test.ts or .test.tsx files no matter how small. Also use this skill when
+  writing or refactoring React components (their tests likely need updating),
+  creating MobX stores (they need tests), reviewing PRs that include test files,
+  or adding accessibility roles to components (which changes how tests query them).
+  If there is even a possibility that test code will be read, written, modified,
+  or reviewed as part of the current task, use this skill. Provides project
+  testing standards covering Testing Library query priority, setUpTest patterns,
+  test naming conventions, async patterns, and anti-patterns.
 ---
 
 # Unit Testing Guide
