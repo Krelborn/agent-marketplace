@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | xargs -I {} npx prettier --write {} --ignore-unknown"
+            "command": "[ -f node_modules/.bin/prettier ] && jq -r '.tool_input.file_path' | xargs -I {} npx prettier --write {} --ignore-unknown || true"
           }
         ]
       }
