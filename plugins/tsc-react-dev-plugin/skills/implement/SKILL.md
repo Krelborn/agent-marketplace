@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "Execute an approved implementation plan using coordinated Coder and Code Review subagents. Reads the plan from plan mode context, then implements it step by step with coder/reviewer loops, parallel final review, and verification. Triggers on: '/implement', 'execute this plan', 'implement the plan', or when the user wants to execute an approved plan after planning."
+description: "Execute an approved implementation plan using coordinated Coder and Code Review subagents. Reads the plan from plan mode context, then implements it unit by unit with a deterministic smoke gate between units, runs a single end-of-implementation review-and-fix pass against the full diff, and verifies the result. Triggers on: '/implement', 'execute this plan', 'implement the plan', or when the user wants to execute an approved plan after planning."
 ---
 
 # Implement Skill
@@ -17,7 +17,8 @@ If no plan file is found in the conversation context, ask the user to provide th
 
 The skill is complete only when **all** of the following hold:
 
-- Every unit of work has been reviewed and approved.
+- Every unit of work has been implemented and has passed its smoke gate.
+- The end-of-implementation review-and-fix pass has run, and every blocking finding has been resolved (or escalated to the user).
 - The full test suite passes — no failing tests, and no tests skipped, disabled, or deleted to make verification pass.
 - The type checker passes with no new errors.
 - The linter passes with no new errors.
@@ -42,6 +43,7 @@ For each unit of work:
 **1. Dispatch Coder** — Launch a Coder subagent (`subagent_type: "tsc-react-dev-plugin:coder"`) with a focused brief containing ONLY:
 
 - **This critical instruction at the top of every brief**: "The plan is already complete. Do NOT plan or outline an approach — skip straight to reading the relevant files and writing code. Every response must include actual code changes via Edit/Write tools."
+- "You are the sole quality gate for this unit. There is no per-unit external reviewer — the next step is the next unit, not feedback on this one. Do thorough self-review (types, edge cases, tests) before declaring complete. A single end-of-implementation review will pick up cross-cutting issues against the full diff."
 - The specific tasks for that unit
 - Relevant file paths
 - Acceptance criteria
@@ -50,29 +52,60 @@ For each unit of work:
 - "Tests you touch or write must pass before this unit is complete. Run the affected tests after your changes. Do not skip, disable (`.skip`, `xit`), focus (`.only`), comment out, or delete tests to clear failures — surface the issue instead."
 - If the unit involves writing or modifying tests: "Invoke the `unit-testing-guide` skill for testing conventions. Follow it."
 
-**2. Dispatch Reviewer** — When the Coder completes, launch a Code Review subagent (`subagent_type: "tsc-react-dev-plugin:code-reviewer"`) to review:
+**2. Sanity check** — confirm the Coder dispatch produced Edit/Write tool calls. A response with no edits is an automatic smoke-gate failure regardless of what the Coder claims. Re-dispatch the original Coder brief once with "Your previous response made no edits — produce the code changes now." If still no edits, stop and surface to the user.
 
-- Correctness and adherence to the plan
-- Missed files or incomplete changes
-- Unnecessary remnants (dead code, redundant guards, stale comments)
-- Consistency with the existing codebase
-- Tests in modified files actually run and pass — flag any `.skip`, `.only`, `xit`, `xdescribe`, commented-out tests, or tests that were deleted without justification as **blocking** issues
-- If tests were written: verify adherence to the `unit-testing-guide` skill (query priority, `userEvent` over `fireEvent`, flat structure, `must [behavior] when [condition]` naming, no snapshot tests or implementation-detail testing)
+**3. Dispatch smoke-gate subagent** — once edits exist, launch a Coder (`subagent_type: "tsc-react-dev-plugin:coder"`) with a tight smoke-gate brief. Keep the orchestrator out of the check/fix loop:
 
-**3. Iterate** — If the reviewer flags issues, pass specific feedback back to a Coder subagent. Repeat until approved. Max 3 iterations — if the same issue persists, surface it to the user and stop.
+> **You are the smoke gate for this unit. Do not write new code unless fixing a smoke failure.**
+>
+> Files this unit changed: [list]. Test files this unit touched or wrote: [list].
+>
+> 1. Run the project's typecheck (`yarn typecheck` or equivalent). Scope to changed files if supported; otherwise run the project-wide typecheck.
+> 2. Run only the test files listed above. **Do not run the full suite** — that happens later in the Verify phase.
+> 3. If both pass, report `smoke-gate: pass` and stop.
+> 4. If either fails, fix only the specific failure (typecheck error or failing test). Do not refactor unrelated code, do not add features, do not address style/design/"looks incomplete" concerns — those belong to the end-of-implementation review.
+> 5. Re-run only the failing check after each fix. Cap at **2 fix attempts on the same failure**. After the second failed attempt, stop and report `smoke-gate: fail` with the unresolved failure output.
+> 6. Final report must be exactly one of `smoke-gate: pass` or `smoke-gate: fail: [reason + key output]`.
 
-**4. Continue** — Once a unit is approved, move to the next. Run independent units concurrently where possible.
+The gate is deterministic and binary. The subagent must not make subjective calls about scope, design, or "looks incomplete" — those belong to the end-of-implementation review against the full diff.
 
-## Final Review
+**4. Continue** — on `smoke-gate: pass`, the unit is closed for the implementation phase and will be reviewed in aggregate at the end. Move to the next unit. Run independent units concurrently where possible. On `smoke-gate: fail`, stop and surface to the user.
 
-After ALL work is complete, launch reviewers in parallel:
+## End-of-implementation Review-and-Fix
+
+Once every unit has implemented and passed its smoke gate, run a single review-and-fix pass against the full diff. Reviewers see complete state across all units, so cross-unit false positives ("this looks incomplete") that motivated deferring per-unit review do not arise.
+
+### Step 1: Parallel review
+
+Launch reviewers in parallel against the full set of changes:
 
 - **Reviewer 1 — Correctness**: Logic errors, edge cases, missed files, type errors (subagent: `tsc-react-dev-plugin:code-reviewer`)
 - **Reviewer 2 — Consistency**: Changes work together, no conflicting modifications, adherence to the plan (subagent: `tsc-react-dev-plugin:code-reviewer`)
 - **Reviewer 3 — Quality**: Error handling, test coverage, dead code removal, documentation if relevant (subagent: `tsc-react-dev-plugin:code-reviewer`)
 - **Reviewer 4 — Component Quality** (only if `.tsx` files were changed): DRY composition, props docs, accessibility, simplicity. Use skill `tsc-react-dev-plugin:component-review` — it will read its own reference file for review criteria
 
-If issues are raised, dispatch a Coder subagent to fix them, then re-review only the affected changes.
+Each reviewer must also flag any `.skip`, `.only`, `xit`, `xdescribe`, commented-out tests, or tests deleted without justification as **blocking** issues, and verify any new tests adhere to the `unit-testing-guide` skill.
+
+### Step 2: Aggregate findings
+
+Merge reviewer reports into a single deduplicated issue list. Where two reviewers raise overlapping comments, fold them into one entry. Drop comments already addressed by another finding.
+
+### Step 3: Dispatch fixes — grouped by file/module
+
+Group fixes by file or module so a single Coder dispatch handles all changes to a given area. Independent fix-groups (no shared files) run in parallel.
+
+For each fix-group, dispatch a Coder (`subagent_type: "tsc-react-dev-plugin:coder"`) with:
+
+- The aggregated issue list for this group, with file paths and line numbers from the reviewers
+- The same TDD/testing instructions used in the per-unit Coder brief above
+- "Tests you touch or write must pass before this fix is complete. Do not skip, disable, or delete tests to clear failures."
+- "Fix only the issues listed. Do not refactor unrelated code."
+
+### Step 4: Re-review affected areas only
+
+After fixes land, dispatch a single Code Reviewer (or, if `.tsx` is involved, the `component-review` skill) scoped to the changed areas — not the full diff again. Confirm each issue is addressed.
+
+Cap at 3 review→fix iterations. If the same issue persists after 3 rounds, stop and surface to the user.
 
 ## Verify
 
@@ -90,7 +123,7 @@ If any step fails:
 3. Re-run the failing step. If it passes, **re-run the full verification set** to confirm nothing else regressed.
 4. Repeat up to 3 attempts. After 3 attempts on the same failure, stop and report.
 
-A unit, the final review, and the skill as a whole are **never** considered done with verification failures. If verification ends in a failing state, the report status is **fail** and the unresolved errors must be detailed.
+A unit, the end-of-implementation review, and the skill as a whole are **never** considered done with verification failures. If verification ends in a failing state, the report status is **fail** and the unresolved errors must be detailed.
 
 ## Report
 
@@ -129,8 +162,10 @@ Do not report intermediate states like `partial` or `mostly complete`. The statu
 - **Minimize your context** — pass subagents only what they need; summarize, don't copy
 - **Log progress** — after each unit, note what completed and what dispatches next
 - **Prefer small briefs** — one focused unit per Coder dispatch
-- **Escalate, don't loop** — same issue after 3 iterations means stop and report
+- **Defer subjective review** — there is no per-unit external reviewer. The unit-level gate is a smoke-gate subagent that runs typecheck + affected tests and fixes its own failures within a tight, binary brief. All correctness/consistency/quality review happens once at the end against the full diff.
+- **Keep the orchestrator out of shell output** — running smoke checks via a subagent (rather than directly) keeps test logs, typecheck dumps, and fix iterations out of the orchestrator's context. The orchestrator only sees `smoke-gate: pass` or `smoke-gate: fail: [reason]`.
+- **Escalate, don't loop** — smoke-gate fixes cap at 2 attempts; review→fix iterations cap at 3. Same issue past the cap means stop and report.
 - **Respect dependencies** — never start work before its dependencies complete
 - **Run independent work concurrently**
-- **Handle failures** — if a subagent fails or gets stuck after 3 attempts, report to the user and ask how to proceed
+- **Handle failures** — if a subagent fails or gets stuck after the cap, report to the user and ask how to proceed
 - **Done means green** — `pass` requires every verification step to pass. Skipping, disabling, or deleting a test to clear a failure is a `fail`, not a `pass`
