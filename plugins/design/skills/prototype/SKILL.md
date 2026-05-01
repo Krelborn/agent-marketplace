@@ -44,6 +44,7 @@ Default visual language is the token set in `assets/template.html`: neutral ston
 
 Override the defaults when:
 - The user names a brand, palette, or reference style → match it.
+- The project already exists and the prototype must fit in → match the existing style or framework.
 - The product type calls for a different feel (consumer mobile app → more saturated, more rounded; finance product → tighter, more conservative; marketing site → larger type scale, more whitespace).
 - Dark mode is requested or implied.
 
