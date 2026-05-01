@@ -13,6 +13,11 @@
       "name": "worklog-plugin",
       "source": "./plugins/worklog-plugin",
       "description": "GitHub Issues-like local task management stored as markdown files in .claude/worklog/"
+    },
+    {
+      "name": "design",
+      "source": "./plugins/design",
+      "description": "Skill for product design, including UX/UI design, prototyping, and design feedback."
     }
   ]
 }

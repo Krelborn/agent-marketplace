@@ -36,13 +36,20 @@ Include this in every Coder brief whose unit could plausibly involve tests:
 
 ## Execution
 
-Break the plan into focused units of work. Each unit should be a coherent, reviewable chunk — respect any ordering or dependencies the plan specifies. Where the plan doesn't specify ordering, work from foundational changes (types, schemas, utilities) outward to consumers (components, tests).
+### Extract units from the plan
+
+Read the plan and identify the units of work it already specifies (Layers, Slices, Steps, Phases, numbered tasks). Use those boundaries and ordering verbatim — do not merge, split, or reorder. The plan is the contract.
+
+If the plan has no explicit unit structure (e.g. a single Implementation prose blob), derive minimal units along file/module boundaries, ordering foundational changes (types, schemas, utilities) before consumers. Note in the final report that units were inferred.
+
+If the plan's structure is ambiguous or contradictory (overlapping units, circular dependencies, two layers touching the same file with no order), **stop and surface to the user** before dispatching. Do not silently resolve planning gaps.
+
+### Per-unit dispatch
 
 For each unit of work:
 
 **1. Dispatch Coder** — Launch a Coder subagent (`subagent_type: "tsc-react-dev-plugin:coder"`) with a focused brief containing ONLY:
 
-- **This critical instruction at the top of every brief**: "The plan is already complete. Do NOT plan or outline an approach — skip straight to reading the relevant files and writing code. Every response must include actual code changes via Edit/Write tools."
 - "You are the sole quality gate for this unit. There is no per-unit external reviewer — the next step is the next unit, not feedback on this one. Do thorough self-review (types, edge cases, tests) before declaring complete. A single end-of-implementation review will pick up cross-cutting issues against the full diff."
 - The specific tasks for that unit
 - Relevant file paths
@@ -54,20 +61,7 @@ For each unit of work:
 
 **2. Sanity check** — confirm the Coder dispatch produced Edit/Write tool calls. A response with no edits is an automatic smoke-gate failure regardless of what the Coder claims. Re-dispatch the original Coder brief once with "Your previous response made no edits — produce the code changes now." If still no edits, stop and surface to the user.
 
-**3. Dispatch smoke-gate subagent** — once edits exist, launch a Coder (`subagent_type: "tsc-react-dev-plugin:coder"`) with a tight smoke-gate brief. Keep the orchestrator out of the check/fix loop:
-
-> **You are the smoke gate for this unit. Do not write new code unless fixing a smoke failure.**
->
-> Files this unit changed: [list]. Test files this unit touched or wrote: [list].
->
-> 1. Run the project's typecheck (`yarn typecheck` or equivalent). Scope to changed files if supported; otherwise run the project-wide typecheck.
-> 2. Run only the test files listed above. **Do not run the full suite** — that happens later in the Verify phase.
-> 3. If both pass, report `smoke-gate: pass` and stop.
-> 4. If either fails, fix only the specific failure (typecheck error or failing test). Do not refactor unrelated code, do not add features, do not address style/design/"looks incomplete" concerns — those belong to the end-of-implementation review.
-> 5. Re-run only the failing check after each fix. Cap at **2 fix attempts on the same failure**. After the second failed attempt, stop and report `smoke-gate: fail` with the unresolved failure output.
-> 6. Final report must be exactly one of `smoke-gate: pass` or `smoke-gate: fail: [reason + key output]`.
-
-The gate is deterministic and binary. The subagent must not make subjective calls about scope, design, or "looks incomplete" — those belong to the end-of-implementation review against the full diff.
+**3. Dispatch smoke-gate subagent** — once edits exist, launch a Coder (`subagent_type: "tsc-react-dev-plugin:coder"`) using the brief at `skills/implement/references/smoke-gate-brief.md`. Substitute the changed-files list and touched-test-files list. Do not modify the brief otherwise — it is deterministic and binary by design, and the subagent must not make subjective calls about scope, design, or "looks incomplete" (those belong to the end-of-implementation review against the full diff).
 
 **4. Continue** — on `smoke-gate: pass`, the unit is closed for the implementation phase and will be reviewed in aggregate at the end. Move to the next unit. Run independent units concurrently where possible. On `smoke-gate: fail`, stop and surface to the user.
 
