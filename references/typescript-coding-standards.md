@@ -17,11 +17,13 @@ After reading this file announce: "Typescript Coding Standards loaded"
 ## Code Style & Standards
 
 ### Comments
+
 - Write meaningful comments that explain **why**, not **what** (the code shows what).
 - Add JSDoc comments to all public APIs, interfaces, types, and exported functions with `@param`, `@returns`, and tags where applicable.
 - Use inline comments sparingly and only when the logic is non-obvious.
 - Single line comments MUST not have a trailing period to close the sentence
 - JSDoc comments on interface fields must be multi-line (`/** ... */` on separate lines) with a blank line between each field:
+
 ```
 /** This is a bad doc comment on one line. */
 const fooBad = 0;
@@ -52,12 +54,13 @@ const barGood = 1;
 - Never use `@ts-ignore` — use `@ts-expect-error` with a comment explaining why, only as a last resort
 - Prefer `unknown` over `any` when the type is truly not known, and narrow it with type guards
 - Always use curly braces for if/for/while statements, even single-line bodies
-- Exported functions must have explicit return types (e.g., `: JSX.Element`)
+- Exported functions must have explicit return types (e.g., `: JSX.Element`). Exception: when a function's return type from a generic library (e.g., TanStack Router's `createRouter()`) would require overly complex type expressions, omit the return type and let TypeScript infer it. Prefer inferred types over using `any`, as `any` disables type checking entirely.
 
 ### Modules
 
 - Always 1 class per module
 - Avoid big types.ts files. Break up interfaces and type definitions into multiple modules while keeping small, tightly coupled types together. Prefer a primary interface/type with supporting types.
+
 ```
 // Bar is small and only used by Foo so it shares its module
 export type Bar = "one" | "two" | "three";
@@ -67,6 +70,7 @@ export interface Foo {
   // Other stuff below...
 }
 ```
+
 - Comments like `// --- Column configuration ---` are a smell. If code is partitioned with markers consider whether to break up the module.
 - Barrel imports: External consumers must import from the module barrel (`../ReactComponent`), not from internal files (`../ReactComponent/InternalType`). Internal files within a module may import siblings directly.
 
@@ -88,7 +92,6 @@ export interface Foo {
   - `arr`, `obj`, `str`, `num` → use `array`, `object`, `string`, `number`
 
   Permitted exceptions:
-
   - **Established acronyms and initialisms**: `URL`, `HTTP`, `HTTPS`, `API`, `ID`, `UUID`, `DOM`, `JSON`, `XML`, `CSS`, `HTML`, `SQL`, `JWT`, `CLI`.
 
   - **Loop counters in tight scopes**: `i`, `j`, `k`.
@@ -101,7 +104,7 @@ export interface Foo {
     - Database column names, API field names, and other wire-format identifiers from systems you don't control
     - CLI flag names matching a tool's documented interface
 
-    The test: if renaming the identifier would break interop with an external system, or if the short form *is* the canonical spelling in a specification or standard, use the short form.
+    The test: if renaming the identifier would break interop with an external system, or if the short form _is_ the canonical spelling in a specification or standard, use the short form.
 
   - **Ecosystem-standard convention names**: a small, closed set of terms that are universally understood in their ecosystem and where the long form would look wrong to other developers. Specifically:
     - `Props` (React component props types) — not `Properties`
@@ -111,8 +114,8 @@ export interface Foo {
     - `env` (environment variables, `process.env`) — not `environment`
 
     This list is exhaustive. If a shortening isn't on it, expand it. "It's conventional in my codebase" is not sufficient — the test is whether the short form is the documented, canonical name in widely-used framework or language conventions.
-- **Files with a clear primary export** are named character-for-character identically to that export's identifier, including casing. The extension is `.tsx` if the file contains JSX, otherwise `.ts`.
 
+- **Files with a clear primary export** are named character-for-character identically to that export's identifier, including casing. The extension is `.tsx` if the file contains JSX, otherwise `.ts`.
   - `class Foo` → `Foo.ts`
   - `interface UserProfile` → `UserProfile.ts`
   - `function MyButton(): JSX.Element` → `MyButton.tsx`
@@ -125,7 +128,6 @@ export interface Foo {
   A "primary export" means one of: the sole export from the module, or the export the module clearly exists to provide (e.g. a component file that also exports its `Props` type — the component is primary, the `Props` type is incidental).
 
 - **Files without a clear primary export** — utility modules, collections of related helpers, mixed-purpose modules — use a descriptive camelCase name that summarises the contents.
-
   - `dateTimeFormatters.ts`
   - `stringHelpers.ts`
   - `validationRules.ts`
@@ -172,6 +174,7 @@ export interface Foo {
 - Don't use composition utility when mixing classes without conditionals: `d-flex flext-grow-1 ${styles.fromModule}`
 
 ### Import Ordering
+
 - Import ordering: external → `../` internal → `./` local (alphabetical within each group); blank line between each group; type imports before value imports from same module
 - Type imports before value imports from the same module
 
@@ -181,3 +184,7 @@ export interface Foo {
 - Never leave TODO comments without an explanation of what needs to be done and why it's deferred
 - Never ignore error cases or assume happy paths
 - Never use `console.log` for error handling in production code
+
+## Related Skills
+
+- **unit-testing-guide** - Load this skill when writing or reviewing unit tests.
